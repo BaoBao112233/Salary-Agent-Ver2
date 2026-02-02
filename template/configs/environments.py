@@ -21,16 +21,22 @@ class EnvironmentSettings(BaseSettings):
     GOOGLE_CLOUD_LOCATION: str = "us-east1"
     GOOGLE_APPLICATION_CREDENTIALS: str = "service-account.json"
     # Database settings - PostgreSQL
-    POSTGRES_HOST: str
-    POSTGRES_PORT: int
-    POSTGRES_DB: str
-    POSTGRES_USER: str
-    POSTGRES_PASSWORD: str
+    PORTGRES_HOST: str
+    PORTGRES_PORT: int
+    PORTGRES_DB: str
+    PORTGRES_USER: str
+    PORTGRES_PASSWORD: str
     # Cache settings - Redis
     REDIS_HOST: str
     REDIS_PORT: int
     REDIS_DB: int
     TTL_SECONDS: int = 3600
+    # AWS S3 settings
+    AWS_ACCESS_KEY_ID: str
+    AWS_SECRET_ACCESS_KEY: str
+    BUCKET: str
+    REGION: str
+    PROJECT_NAME: str = "Salary_Agent"
     # Debug settings
     MAX_TURNS: int = 20
     LIMIT_MINUTES: int = 10

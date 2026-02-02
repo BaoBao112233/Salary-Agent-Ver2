@@ -19,7 +19,12 @@ cache = TTLCache(maxsize=500, ttl=300)
 
 @RouterAI.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequestAPI, background_tasks: BackgroundTasks):
-    """Process a chat message and return a response"""
+    """
+    ## Mô tả
+    Endpoint này nhận 4 tham số: session_id, user_id, message, và user_image (tùy chọn).
+    Nó sử dụng các tham số này để tạo một đối tượng ChatRequest và gọi phương thức chat của Agent để xử lý yêu cầu.
+    Kết quả trả về là một đối tượng ChatResponse chứa phản hồi từ Agent.
+    """
     try:
         agent = Agent()
         # Convert to internal ChatRequest

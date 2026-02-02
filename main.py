@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import logging
 from template.configs.environments import env
 from template.router.v1.ai import RouterAI
+from template.router.v1.import_file import router as ImportFileRouter
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -28,6 +29,7 @@ app.add_middleware(
 
 # Include API routers
 app.include_router(RouterAI)
+app.include_router(ImportFileRouter)
 
 @app.get("/health")
 async def health_check():

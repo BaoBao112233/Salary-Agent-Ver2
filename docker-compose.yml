@@ -24,6 +24,8 @@ services:
       - ./saved_prompt:/app/saved_prompt
       - ./memories:/app/memories
       - ./postgres_data:/app/postgres_data
+      - ./uploads:/app/uploads
+      - ./outputs:/app/outputs
       - ./redis_data:/app/redis_data
       - ./service-account.json:/app/service-account.json:ro
       - ./logs:/app/logs
@@ -101,6 +103,33 @@ services:
         max-size: "10m"
         max-file: "5"
 
+  # pgAdmin Web UI for PostgreSQL
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: salary-pgadmin
+    restart: unless-stopped
+    user: root
+
+    ports:
+      - "8902:80"
+
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
+    networks:
+      - salary-network
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
 # Network configuration
 networks:
   salary-network:
@@ -109,4 +138,6 @@ networks:
 # Volumes for persistent storage
 volumes:
   salary-logs:
+    driver: local
+  pgadmin_data:
     driver: local
