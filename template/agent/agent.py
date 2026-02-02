@@ -31,6 +31,39 @@ os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = env.GOOGLE_APPLICATION_CREDENTIAL
 
 memories = {}
 
+default_tools = [
+    StructuredTool.from_function(
+        func=google_search,
+        name="google_search",
+        description="Search Google for information. Input is required. Input should be a single string strictly in the following JSON format: {query: <query: string>}. Example: {\"query\": \"latest news on Bitcoin\"}. Input query is user require. Output is a string of search results.",
+    ),
+    StructuredTool.from_function(
+        func=add,
+        name="add",
+        description="Add two numbers. Input should be a JSON object with 'a' and 'b' fields. Example: {\"a\": 5, \"b\": 10}. Output is the sum of a and b.",
+    ),
+    StructuredTool.from_function(
+        func=subtract,
+        name="subtract",
+        description="Subtract two numbers. Input should be a JSON object with 'a' and 'b' fields. Example: {\"a\": 10, \"b\": 5}. Output is the difference of a and b.",
+    ),
+    StructuredTool.from_function(
+        func=multiply,
+        name="multiply",
+        description="Multiply two numbers. Input should be a JSON object with 'a' and 'b' fields. Example: {\"a\": 5, \"b\": 10}. Output is the product of a and b.",
+    ),
+    StructuredTool.from_function(
+        func=divide,
+        name="divide",
+        description="Divide two numbers. Input should be a JSON object with 'a' and 'b' fields. Example: {\"a\": 10, \"b\": 5}. Output is the quotient of a and b.",
+    ),
+    StructuredTool.from_function(
+        func=mod,
+        name="mod",
+        description="Calculate the modulus of two numbers. Input should be a JSON object with 'a' and 'b' fields. Example: {\"a\": 10, \"b\": 5}. Output is the modulus of a and b.",
+    ),
+]
+
 def _init_memories(session_id: int , user_id: int):
     try:
 
@@ -97,7 +130,12 @@ class Agent:
     - General crypto questions
     """
     
-    def __init__(self, api_key: str = None, model: str = None, prompt: str = SYSTEM_PROMPT, temperature: float = 0.2):
+    def __init__(self, 
+                 api_key: str = None, 
+                 model: str = None, 
+                 prompt: str = SYSTEM_PROMPT, 
+                 temperature: float = 0.2,
+                 tools: list = default_tools):
         # Initialize LLM with Vertex AI (Gemini)
         self.llm = ChatVertexAI(
             model=model or env.MODEL_NAME,
@@ -107,38 +145,7 @@ class Agent:
         )
 
         # Define tools
-        self.tools = [
-            StructuredTool.from_function(
-                func=google_search,
-                name="google_search",
-                description="Search Google for information. Input is required. Input should be a single string strictly in the following JSON format: {query: <query: string>}. Example: {\"query\": \"latest news on Bitcoin\"}. Input query is user require. Output is a string of search results.",
-            ),
-            StructuredTool.from_function(
-                func=add,
-                name="add",
-                description="Add two numbers. Input should be a JSON object with 'a' and 'b' fields. Example: {\"a\": 5, \"b\": 10}. Output is the sum of a and b.",
-            ),
-            StructuredTool.from_function(
-                func=subtract,
-                name="subtract",
-                description="Subtract two numbers. Input should be a JSON object with 'a' and 'b' fields. Example: {\"a\": 10, \"b\": 5}. Output is the difference of a and b.",
-            ),
-            StructuredTool.from_function(
-                func=multiply,
-                name="multiply",
-                description="Multiply two numbers. Input should be a JSON object with 'a' and 'b' fields. Example: {\"a\": 5, \"b\": 10}. Output is the product of a and b.",
-            ),
-            StructuredTool.from_function(
-                func=divide,
-                name="divide",
-                description="Divide two numbers. Input should be a JSON object with 'a' and 'b' fields. Example: {\"a\": 10, \"b\": 5}. Output is the quotient of a and b.",
-            ),
-            StructuredTool.from_function(
-                func=mod,
-                name="mod",
-                description="Calculate the modulus of two numbers. Input should be a JSON object with 'a' and 'b' fields. Example: {\"a\": 10, \"b\": 5}. Output is the modulus of a and b.",
-            ),
-        ]
+        self.tools = tools
         
         # Create the prompt template
         self.prompt = ChatPromptTemplate.from_messages([
