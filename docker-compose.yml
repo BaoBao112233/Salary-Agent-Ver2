@@ -1,0 +1,112 @@
+# CRM-Oxii-Chatbot Complete Docker Compose Configuration
+# This file provides comprehensive deployment options for development and production
+version: '3.8'
+
+services:
+  # Main CRM Chatbot Application
+  salary-agent-service:
+    build:
+      context: .
+      dockerfile: ${DOCKERFILE:-Dockerfile}
+    container_name: ${CONTAINER_NAME:-salary-agent-service}
+    restart: unless-stopped
+
+    ports:
+      - "${HOST_PORT:-8000}:8000"
+
+    env_file:
+      - .env
+
+    volumes:
+      # For development hot-reload, mount source code (comment out for production)
+      - ./:/app
+      # Override persistent directories to maintain data
+      - ./saved_prompt:/app/saved_prompt
+      - ./memories:/app/memories
+      - ./postgres_data:/app/postgres_data
+      - ./redis_data:/app/redis_data
+      - ./service-account.json:/app/service-account.json:ro
+      - ./logs:/app/logs
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    networks:
+      - salary-network
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "${LOG_MAX_SIZE:-10m}"
+        max-file: "${LOG_MAX_FILE:-5}"
+
+    # Resource limits (adjust based on your server capacity)
+    deploy:
+      resources:
+        limits:
+          cpus: '${CPU_LIMIT:-2.0}'
+          memory: ${MEMORY_LIMIT:-2G}
+        reservations:
+          cpus: '${CPU_RESERVATION:-1.0}'
+          memory: ${MEMORY_RESERVATION:-1G}
+
+  # Redis Cache Service
+  redis:
+    image: redis:7-alpine
+    container_name: redis_cache_ai
+    restart: unless-stopped
+
+    ports:
+      - "8900:6379"
+
+    volumes:
+      - ./redis_data:/data
+
+    command: ["redis-server", "--appendonly", "yes"]
+
+    networks:
+      - salary-network
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  # Postgres Database Service
+  postgres:
+    image: postgres:15-alpine
+    container_name: salary-postgres
+    restart: unless-stopped
+
+    ports:
+      - "8901:5432"
+
+    env_file:
+      - .env
+
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+
+    networks:
+      - salary-network
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+# Network configuration
+networks:
+  salary-network:
+    driver: bridge
+
+# Volumes for persistent storage
+volumes:
+  salary-logs:
+    driver: local

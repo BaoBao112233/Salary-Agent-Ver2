@@ -2,7 +2,7 @@ import os
 import json
 import logging
 from datetime import datetime
-from langchain_openai import ChatOpenAI
+from langchain_google_vertexai import ChatVertexAI
 from langchain.tools import StructuredTool
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -13,9 +13,9 @@ from langchain_community.chat_message_histories import FileChatMessageHistory
 from langchain.agents import AgentExecutor
 from template.configs.environments import get_environment_variables
 from template.schemas.model import ChatRequest, ChatResponse
-from template.agent.histories import ImageSupportChatHistory
+from template.agent.histories import RedisSupportChatHistory
 from template.agent.prompts import SYSTEM_PROMPT
-from template.agent.tools.calculator import add, subtract, multiply, divide, mod
+from template.agent.tools.caculator import add, subtract, multiply, divide, mod
 from template.agent.tools.search import (
     google_search
 )
@@ -26,7 +26,8 @@ logger = logging.getLogger(__name__)
 
 env = get_environment_variables()
 
-os.environ["OPENAI_API_KEY"] = env.OPENAI_API_KEY
+# Set Google Cloud credentials
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = env.GOOGLE_APPLICATION_CREDENTIALS
 
 memories = {}
 
@@ -66,16 +67,23 @@ def _init_memories(session_id: int , user_id: int):
         return f"Error processing file: {str(e)}"
     
 
-def _get_memory(session_id: int, user_id: int) -> ImageSupportChatHistory:
-    """Get or create memory for a session"""
+def _get_memory(session_id: int, user_id: int) -> RedisSupportChatHistory:
+    """Get or create memory for a session using unified Redis/File storage"""
     session_key = str(session_id) + "_" + str(user_id)
     if session_key not in memories:
-        # Create directory if it doesn't exist
+        # Create directory if it doesn't exist (for file fallback)
         os.makedirs("memories", exist_ok=True)
-        memories[session_key] = ImageSupportChatHistory(f"memories/chat_history_{session_key}.json")
+        
+        # Use Redis storage by default with file fallback
+        memories[session_key] = RedisSupportChatHistory(
+            session_id=str(session_id),
+            user_id=str(user_id),
+            storage="redis",  # Will auto-fallback to "file" if Redis unavailable
+            ttl=env.TTL_SECONDS
+        )
         
         # Initialize with user ID if it's a new session
-        if not os.path.exists(f"memories/chat_history_{session_key}.json"):
+        if not memories[session_key].exists_session():
             memories[session_key].add_ai_message(f"your user id is {user_id}")
 
     return memories[session_key]
@@ -89,12 +97,13 @@ class Agent:
     - General crypto questions
     """
     
-    def __init__(self, api_key: str, model: str = "gpt-4o-mini", prompt: str = SYSTEM_PROMPT, temperature: float = 0.2):
-        # Initialize LLM
-        self.llm = ChatOpenAI(
-            model=model,
-            temperature=0.0,
-            api_key=api_key
+    def __init__(self, api_key: str = None, model: str = None, prompt: str = SYSTEM_PROMPT, temperature: float = 0.2):
+        # Initialize LLM with Vertex AI (Gemini)
+        self.llm = ChatVertexAI(
+            model=model or env.MODEL_NAME,
+            project=env.GOOGLE_CLOUD_PROJECT,
+            location=env.GOOGLE_CLOUD_LOCATION,
+            temperature=temperature
         )
 
         # Define tools
@@ -238,7 +247,7 @@ class Agent:
             # Clean response text
             response_text = response_text.replace("**", "")
 
-            return ChatResponse(response=response_text, tweet_id=request.tweet_id)
+            return ChatResponse(response=response_text)
             
         except Exception as e:
             logger.error(f"Error processing message: {str(e)}", exc_info=True)
@@ -246,30 +255,3 @@ class Agent:
                 response=f"I encountered an error processing your request. Please try again.",
                 error_status="error"
             )
-
-if __name__ == "__main__":
-    from template.configs.environments import env
-    api_key = env.OPENAI_API_KEY 
-    prompt = "You are XSol, a helpful assisstant."
-    agent = Agent(api_key=api_key, prompt=prompt)
-
-    user_id = 32
-    session_id = 0
-
-    messages = [
-        "buy 0.001 sol token for 2zMMhcVQEXDtdE6vsFS7S7D5oUodfJHE8vd1gnBouauv",
-        "0.001 sol",
-        "yes",
-        "sell 36 token 8yxD7uSEyEKpJqaSiunworBFzirAsRXKNjD2X1mdbonk",
-        "36",
-        "ok",
-    ]
-
-    for i in range(len(messages)):
-        request = ChatRequest(
-            user_id=user_id,
-            session_id=session_id,
-            message=messages[i]
-        )
-        response = agent.chat(request)
-        print(response.response)

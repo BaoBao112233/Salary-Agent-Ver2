@@ -1,22 +1,16 @@
-from googlesearch import search
-import logging
-
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+"""
+Search tools for the agent
+"""
 
 def google_search(query: str) -> str:
-    """Search Google for information"""
-    try:
-        logger.info(f"Searching Google for: {query}")
+    """
+    Placeholder for Google search functionality.
+    
+    Args:
+        query: Search query string
         
-        results = search(query, advanced=True, num_results=5)
-        formatted_results = []
-        
-        for r in results:
-            formatted_results.append(f"{r.title} - {r.description}")
-        
-        return "\n".join(formatted_results)
-    except Exception as e:
-        logger.error(f"Error searching Google: {str(e)}", exc_info=True)
-        return f"Error searching Google: {str(e)}"
+    Returns:
+        Search results as a string
+    """
+    # TODO: Implement actual Google search
+    return f"Search results for: {query}\n(Google search functionality not yet implemented)"

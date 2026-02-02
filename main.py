@@ -15,9 +15,9 @@ logger = logging.getLogger(__name__)
 
 # Initialize the FastAPI app
 app = FastAPI(
-    title="Template AI API",
-    description="API for interacting with the Template Agent",
-    version="1.0.0"
+    title=env.APP_NAME,
+    description=env.APP_DESC,
+    version=env.API_VERSION,
 )
 
 # Add CORS middleware
@@ -36,7 +36,6 @@ class ChatRequestAPI(BaseModel):
     user_id: int = Field(..., description="Unique identifier for the user id")
     message: str = Field(..., description="User message to process")
     user_image: Optional[str] = Field("", description="User imagem to process")
-    tweet_id: Optional[str] = Field("", description="User Tweet ID")
 
 # Response models
 class APIResponse(BaseModel):
@@ -50,14 +49,13 @@ class APIResponse(BaseModel):
 async def chat(request: ChatRequestAPI, background_tasks: BackgroundTasks):
     """Process a chat message and return a response"""
     try:
-        agent = Agent(api_key=env.OPENAI_API_KEY)
+        agent = Agent()
         # Convert to internal ChatRequest
         chat_request = ChatRequest(
             session_id=request.session_id,
             user_id=request.user_id,
             message=request.message,
             user_image=request.user_image,
-            tweet_id=request.tweet_id
         )
 
         print(f'session_id: {request.session_id} | user_id: {request.user_id} | message: {request.message}')
@@ -68,9 +66,9 @@ async def chat(request: ChatRequestAPI, background_tasks: BackgroundTasks):
         return response
     except Exception as e:
         logger.error(f"Error processing chat request: {str(e)}", exc_info=True)
-        return APIResponse(
-            success=False,
-            error=f"Error processing request"
+        return ChatResponse(
+            response=f"Error processing request: {str(e)}",
+            error_status="error"
         )
 
 @app.get("/health")
