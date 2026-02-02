@@ -1,0 +1,4 @@
+.env
+/memories
+/__pycache__
+/test_folder
